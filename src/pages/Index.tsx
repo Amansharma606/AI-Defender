@@ -7,8 +7,6 @@ import JarvisOverlay from "@/components/JarvisOverlay";
 import ResultCard from "@/components/ResultCard";
 import ShatterEffect from "@/components/ShatterEffect";
 import { useVoice } from "@/hooks/useVoice";
-import { useMouseGlow } from "@/hooks/useMouseGlow";
-import { useScanSound } from "@/hooks/useScanSound";
 import { Shield } from "lucide-react";
 
 type Phase = "idle" | "scanning" | "shatter" | "result";
@@ -18,14 +16,11 @@ const Index = () => {
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{ isDeepfake: boolean; confidence: number } | null>(null);
   const { speak } = useVoice();
-  const mouse = useMouseGlow();
-  const playScanSound = useScanSound();
 
   const startScan = useCallback((_url: string) => {
-    playScanSound();
     setPhase("scanning");
     setProgress(0);
-  }, [playScanSound]);
+  }, []);
 
   // Simulate progress
   useEffect(() => {
