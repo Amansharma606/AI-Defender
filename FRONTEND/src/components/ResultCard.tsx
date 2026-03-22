@@ -1,40 +1,18 @@
 import { motion } from "framer-motion";
-import { RotateCcw, Image, Video, AudioLines } from "lucide-react";
 
-export interface Detection {
-  object: string;
-  confidence: number;
-}
-
-export interface MediaResult {
-  id: string;
-  filename: string;
-  mediaType: "image" | "video" | "audio";
-  detections: Detection[];
-  prediction?: string;
-  confidence?: number;
-  score?: number;
-  threshold?: number;
-  detector?: string;
-  qualityWarnings?: string[];
-}
+import { RotateCcw } from "lucide-react";
 
 interface ResultCardProps {
-  results: MediaResult[];
+  isDeepfake: boolean;
+  confidence: number;
   onRestore: () => void;
 }
 
-export default function ResultCard({ results, onRestore }: ResultCardProps) {
+export default function ResultCard({ isDeepfake, confidence, onRestore }: ResultCardProps) {
+  const message = isDeepfake
+    ? "JARVIS has identified synthetic neural artifacts. This media has been digitally manipulated with high confidence. Exercise extreme caution."
+    : "JARVIS analysis complete. No synthetic artifacts detected. Media integrity verified across all neural checkpoints.";
 
-  const getMediaIcon = (mediaType: MediaResult["mediaType"]) => {
-    if (mediaType === "video") {
-      return <Video className="w-5 h-5" style={{ color: "var(--dd-magenta)" }} />;
-    }
-    if (mediaType === "audio") {
-      return <AudioLines className="w-5 h-5" style={{ color: "#f59e0b" }} />;
-    }
-    return <Image className="w-5 h-5" style={{ color: "var(--dd-cyan)" }} />;
-  };
 
   return (
     <motion.div
@@ -44,189 +22,73 @@ export default function ResultCard({ results, onRestore }: ResultCardProps) {
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(15px)" }}
     >
-      <div
-        className="w-full max-w-4xl mx-5 glass-panel p-6 md:p-8"
-        style={{ maxHeight: "88vh", overflowY: "auto" }}
-      >
 
+      <div className="flex flex-col items-center max-w-lg text-center px-6">
+        {/* Glowing orb */}
+        <motion.div
+          className="animate-float animate-pulse-glow rounded-full mb-8"
+          style={{
+            width: 180,
+            height: 180,
+            background: isDeepfake
+              ? "radial-gradient(circle, rgba(255,68,68,0.3), rgba(255,68,68,0.05), transparent)"
+              : "radial-gradient(circle, rgba(34,211,238,0.3), rgba(34,211,238,0.05), transparent)",
+            boxShadow: isDeepfake
+              ? "0 0 60px rgba(255,68,68,0.3), 0 0 120px rgba(255,68,68,0.1)"
+              : "0 0 60px rgba(34,211,238,0.3), 0 0 120px rgba(34,211,238,0.1)",
+          }}
+        />
+
+        {/* Title */}
         <motion.h1
-          initial={{ opacity: 0, y: 14 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="text-2xl md:text-3xl font-black tracking-wider text-glow-cyan-heavy mb-2"
+          transition={{ delay: 0.3 }}
+          className={`text-3xl md:text-4xl font-black tracking-wider mb-4 ${
+            isDeepfake ? "text-glow-danger" : "text-glow-cyan-heavy"
+          }`}
         >
-          SCAN RESULTS
+          {isDeepfake ? "DEEPFAKE DETECTED" : "MEDIA AUTHENTIC"}
         </motion.h1>
 
-        <p className="font-mono-hud text-xs text-muted-foreground mb-6">
-          Files analyzed: {results.length}
-        </p>
+        {/* Percentage */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5, type: "spring" }}
+          className="mb-6"
+        >
+          <span
+            className="font-black gradient-cv"
+            style={{ fontSize: "5rem", lineHeight: 1 }}
+          >
+            {confidence}%
+          </span>
+        </motion.div>
 
-        <div className="space-y-4 mb-8">
+        {/* Message */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="font-mono-hud text-sm text-muted-foreground leading-relaxed mb-10 max-w-md"
+        >
+          {message}
+        </motion.p>
 
-          {results.map((item, index) => {
-
-            const avgConfidence = typeof item.score === "number"
-              ? item.score
-              : item.detections.length > 0
-                ? item.detections.reduce((a, b) => a + b.confidence, 0) / item.detections.length
-                : 0.5;
-
-            const realPercent = Math.round(avgConfidence * 100);
-            const fakePercent = 100 - realPercent;
-
-            return (
-
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 + index * 0.05 }}
-                className="rounded-2xl p-4"
-                style={{
-                  background: "rgba(10, 10, 30, 0.7)",
-                  border: "1px solid rgba(34, 211, 238, 0.25)",
-                }}
-              >
-
-                {/* Header */}
-                <div className="flex items-center gap-3 mb-3">
-
-                  {getMediaIcon(item.mediaType)}
-
-                  <div>
-                    <p className="font-mono-hud text-xs md:text-sm text-glow-cyan truncate">
-                      {item.filename}
-                    </p>
-
-                    <p className="font-mono-hud text-[10px] text-muted-foreground uppercase tracking-widest">
-                      {item.mediaType}
-                    </p>
-                  </div>
-
-                </div>
-
-                {/* Fake / Real meter */}
-
-                <div className="grid grid-cols-2 gap-3 mb-4">
-
-                  <div
-                    className="rounded-xl px-4 py-3"
-                    style={{
-                      background: "rgba(239,68,68,0.15)",
-                      border: "1px solid rgba(239,68,68,0.35)"
-                    }}
-                  >
-                    <p className="text-xs text-red-300 font-mono-hud tracking-widest">
-                      FAKE
-                    </p>
-                    <p className="text-xl font-black text-red-400">
-                      {fakePercent}%
-                    </p>
-                  </div>
-
-                  <div
-                    className="rounded-xl px-4 py-3"
-                    style={{
-                      background: "rgba(34,211,238,0.15)",
-                      border: "1px solid rgba(34,211,238,0.35)"
-                    }}
-                  >
-                    <p className="text-xs text-cyan-200 font-mono-hud tracking-widest">
-                      REAL
-                    </p>
-                    <p className="text-xl font-black text-cyan-300">
-                      {realPercent}%
-                    </p>
-                  </div>
-
-                </div>
-
-                {(item.mediaType === "image" || item.mediaType === "audio") && item.prediction && (
-                  <div
-                    className="rounded-xl px-4 py-3 mb-4"
-                    style={{
-                      background: "rgba(34,211,238,0.08)",
-                      border: "1px solid rgba(34,211,238,0.2)",
-                    }}
-                  >
-                    <p className="font-mono-hud text-xs text-cyan-200 tracking-widest mb-1">
-                      FINAL RESULT
-                    </p>
-
-                    <p className="text-lg font-black text-cyan-100 mb-1 tracking-wide">
-                      {item.prediction}
-                    </p>
-
-                    {typeof item.confidence === "number" && (
-                      <p className="font-mono-hud text-[11px] text-cyan-300">
-                        Confidence: {(item.confidence * 100).toFixed(1)}%
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Detected Objects */}
-
-                <div
-                  className="rounded-xl px-4 py-3"
-                  style={{
-                    background: "rgba(34,211,238,0.08)",
-                    border: "1px solid rgba(34,211,238,0.2)"
-                  }}
-                >
-
-                  <p className="font-mono-hud text-xs text-cyan-200 mb-2 tracking-widest">
-                    DETECTED OBJECTS
-                  </p>
-
-                  {item.detections.length === 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      No objects detected
-                    </p>
-                  )}
-
-                  {item.detections.map((det, i) => (
-
-                    <div
-                      key={i}
-                      className="flex justify-between text-sm font-mono-hud py-1"
-                    >
-
-                      <span className="text-cyan-200">
-                        {det.object}
-                      </span>
-
-                      <span className="text-cyan-300">
-                        {(det.confidence * 100).toFixed(1)}%
-                      </span>
-
-                    </div>
-
-                  ))}
-
-                </div>
-
-              </motion.div>
-
-            );
-          })}
-
-        </div>
-
+        {/* Restore button */}
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
+          transition={{ delay: 0.9 }}
           onClick={onRestore}
-          className="btn-gradient py-4 px-10 text-sm tracking-[0.2em] uppercase flex items-center gap-3 mx-auto"
+          className="btn-gradient py-4 px-10 text-sm tracking-[0.2em] uppercase flex items-center gap-3"
         >
           <RotateCcw className="w-5 h-5" />
           SYSTEM RESTORE
         </motion.button>
 
       </div>
-
     </motion.div>
   );
 }
